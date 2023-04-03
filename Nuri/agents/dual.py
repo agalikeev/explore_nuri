@@ -4,7 +4,7 @@ import ecole as ec
 import numpy as np
 import collections
 import random
-from agents.agent_model import GNNPolicyItem, GNNPolicyLoad, GNNPolicyAno
+from agents.agent_model import GNNPolicyItem, GNNPolicyLoad, GNNPolicyAno, GNNPolicyAlt_64, GNNPolicyAltDrop_64, GNNPolicyAlt_128, GNNPolicyAltDrop_128
 
 
 class ObservationFunction(ec.observation.NodeBipartite):
@@ -33,6 +33,18 @@ class Policy():
         elif problem == 'anonymous':
             params_path = 'ano.pkl' 
             self.policy = GNNPolicyAno().to(self.device)
+        elif problem == 'alt64':
+            params_path = 'alt64.pkl' 
+            self.policy = GNNPolicyAno().to(self.device)
+        elif problem == 'altdrop64':
+            params_path = 'altdrop64.pkl' 
+            self.policy = GNNPolicyAno().to(self.device)
+        elif problem == 'alt128':
+            params_path = 'alt128.pkl' 
+            self.policy = GNNPolicyAno().to(self.device)
+        elif problem == 'altdrop128':
+            params_path = 'altdrop128.pkl' 
+            self.policy = GNNPolicyAno().to(self.device)                                                                 
         else:
             params_path = 'item.pkl'
             self.policy = GNNPolicyItem().to(self.device)
@@ -54,8 +66,6 @@ class Policy():
                 fed_state_dict[key]=key_sum/len(models)
             self.policy.load_state_dict(fed_state_dict)
             self.policy.eval()
-        elif problem == 'load_balancing':
-            continue
         else:
             self.policy.load_state_dict(torch.load(params_path))
             self.policy.eval()
