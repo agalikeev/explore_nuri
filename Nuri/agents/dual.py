@@ -4,7 +4,7 @@ import ecole as ec
 import numpy as np
 import collections
 import random
-from agents.agent_model import GNNPolicyItem, GNNPolicyLoad, GNNPolicyAno, GNNPolicyAlt_64, GNNPolicyAltDrop_64, GNNPolicyAlt_128, GNNPolicyAltDrop_128
+from agents.agent_model import GNNPolicyItem, GNNPolicyLoad, GNNPolicyAno, GNNPolicyAlt_64, GNNPolicyAltDrop_64, GNNPolicyAlt_128, GNNPolicyAltDrop_128, GNNPolicyReccurent
 
 
 class ObservationFunction(ec.observation.NodeBipartite):
@@ -44,7 +44,10 @@ class Policy():
             self.policy = GNNPolicyAno().to(self.device)
         elif problem == 'altdrop128':
             params_path = 'altdrop128.pkl' 
-            self.policy = GNNPolicyAno().to(self.device)                                                                 
+            self.policy = GNNPolicyAno().to(self.device)      
+        elif problem == 'rec':
+            params_path = 'rec.pkl' 
+            self.policy = GNNPolicyReccurent().to(self.device)                                                                          
         else:
             params_path = 'item.pkl'
             self.policy = GNNPolicyItem().to(self.device)
