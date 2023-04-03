@@ -6,6 +6,7 @@ import pathlib
 import numpy as np
 import configparser
 import random
+import zipfile
 
 cf = configparser.ConfigParser()
 cf.read("./configs/train.ini")
@@ -40,10 +41,10 @@ def pretrain(policy, pretrain_loader):
         for batch in pretrain_loader:
             batch.to(device)
             if not policy.pre_train(
-                batch.constraint_features,
-                batch.edge_index,
-                batch.edge_attr,
-                batch.variable_features,
+                    batch.constraint_features,
+                    batch.edge_index,
+                    batch.edge_attr,
+                    batch.variable_features,
             ):
                 break
 
@@ -135,7 +136,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "problem",
+        "--problem", "-p",
         help="MILP instance type to process.",
         choices=["item_placement", "load_balancing", "anonymous"],
     )
@@ -154,13 +155,37 @@ if __name__ == "__main__":
     parser.add_argument(
         "-g", "--gpu", help="CUDA GPU id (-1 for CPU).", type=int, default=0,
     )
+    parser.add_argument(
+        "-ptype", help="-policy type", type=int, default=0,
+    )
+
     args = parser.parse_args()
+    POLICY_TYPE = args.ptype
 
     top_k = [1, 3, 5, 10]
     if args.problem == "item_placement":
         train_files = []
         valid_files = []
+        path = STORE_DIR
+        if zipfile.is_zipfile(path):
+            print("is zip")
+            zip_name = path.split('/')[-1].split('.')[0]
+            new_dir = f"/content/neur/train_files/instances/{zip_name}"
+            instances_zip = zipfile.ZipFile(path, 'r')
+            instances_zip.extractall(new_dir)
+            path = new_dir
+
+        #new_dir = "/content/neur/samples"
+        instances = glob.glob(f"{path}/*.pkl")
+        train_count = int(len(instances) * 0.8)
+        train_files = instances[0:train_count+1]
+        valid_files = instances[train_count:-1]
+        print(f" len(train) = {len(train_files)}")
+        print(f" len(valid) = {len(valid_files)}")
+        '''
         for i in range(1, args.file_count + 1):
+
+
             train_files.extend(
                 glob.glob(
                     f"{STORE_DIR}/samples/1_item_placement_dagger{i}/train/sample_*.pkl"
@@ -171,8 +196,9 @@ if __name__ == "__main__":
                     f"{STORE_DIR}/samples/1_item_placement_dagger{i}/valid/sample_*.pkl"
                 )
             )
-        print(len(train_files))
-        running_dir = f"{STORE_DIR}/train_files/{args.exp_name}{i}"
+        '''
+
+        running_dir = f"/content/gdrive/MyDrive/scip_logs/{zip_name}_class{POLICY_TYPE}"
 
     elif args.problem == "load_balancing":
         train_files = []
@@ -194,20 +220,40 @@ if __name__ == "__main__":
     elif args.problem == "anonymous":
         train_files = []
         valid_files = []
+        path = STORE_DIR
+        if zipfile.is_zipfile(path):
+            print("is zip")
+            zip_name = path.split('/')[-1].split('.')[0]
+            new_dir = f"/content/neur/train_files/instances/{zip_name}"
+            instances_zip = zipfile.ZipFile(path, 'r')
+            instances_zip.extractall(new_dir)
+            path = new_dir
+
+        #new_dir = "/content/neur/samples"
+        instances = glob.glob(f"{path}/*.pkl")
+        train_count = int(len(instances) * 0.8)
+        train_files = instances[0:train_count+1]
+        valid_files = instances[train_count:-1]
+        print(f" len(train) = {len(train_files)}")
+        print(f" len(valid) = {len(valid_files)}")
+        '''
         for i in range(1, args.file_count + 1):
+
+
             train_files.extend(
                 glob.glob(
-                    f"{STORE_DIR}/samples/3_anonymous_dagger{i}/train/sample_*.pkl"
+                    f"{STORE_DIR}/samples/1_item_placement_dagger{i}/train/sample_*.pkl"
                 )
             )
             valid_files.extend(
                 glob.glob(
-                    f"{STORE_DIR}/samples/3_anonymous_dagger{i}/valid/sample_*.pkl"
+                    f"{STORE_DIR}/samples/1_item_placement_dagger{i}/valid/sample_*.pkl"
                 )
             )
-        print(len(train_files))
-        running_dir = f"{STORE_DIR}/train_files/{args.exp_name}{i}"
+        '''
 
+        running_dir = f"/content/gdrive/MyDrive/scip_logs/{zip_name}_class{POLICY_TYPE}"
+        
     else:
         raise NotImplementedError
 
@@ -232,7 +278,8 @@ if __name__ == "__main__":
     import torch.nn.functional as F
     import torch_geometric
     from utilities import log, pad_tensor, GraphDataset, Scheduler
-    from agent_model import GNNPolicyItem, GNNPolicyLoad, GNNPolicyAno
+    from agent_model import GNNPolicyItem, GNNPolicyLoad, GNNPolicyAno, GNNPolicyAlt_64, GNNPolicyAltDrop_64, \
+        GNNPolicyAlt_128, GNNPolicyAltDrop_128,GNNPolicyReccurent
 
     # randomization setup
     rng = np.random.RandomState(args.seed)
@@ -245,7 +292,7 @@ if __name__ == "__main__":
     log(f"max_epochs: {args.epoch}", logfile)
     log(f"batch_size: {BATCH_SIZE}", logfile)
     log(f"pretrain_batch_size: {PRETRAIN_BATCH_SIZE}", logfile)
-    log(f"valid_batch_size : {VALID_BATCH_SIZE }", logfile)
+    log(f"valid_batch_size : {VALID_BATCH_SIZE}", logfile)
     log(f"lr: {LR}", logfile)
     log(f"top_k: {top_k}", logfile)
     log(f"gpu: {args.gpu}", logfile)
@@ -274,6 +321,16 @@ if __name__ == "__main__":
         policy = GNNPolicyLoad().to(device)
     elif POLICY_TYPE == 2:
         policy = GNNPolicyAno().to(device)
+    elif POLICY_TYPE == 3:
+        policy = GNNPolicyAlt_64().to(device)
+    elif POLICY_TYPE == 4:
+        policy = GNNPolicyAltDrop_64().to(device)
+    elif POLICY_TYPE == 5:
+        policy = GNNPolicyAlt_128().to(device)
+    elif POLICY_TYPE == 6:
+        policy = GNNPolicyAltDrop_128().to(device)
+    elif POLICY_TYPE == 7:
+        policy = GNNPolicyReccurent().to(device)
     else:
         raise NotImplementedError
     optimizer = torch.optim.Adam(policy.parameters(), lr=LR)
