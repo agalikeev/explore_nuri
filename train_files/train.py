@@ -160,102 +160,33 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    POLICY_TYPE = args.ptype
-
+    #POLICY_TYPE = args.ptype
+    print(f"policy_type {POLICY_TYPE}")
     top_k = [1, 3, 5, 10]
-    if args.problem == "item_placement":
-        train_files = []
-        valid_files = []
-        path = STORE_DIR
-        if zipfile.is_zipfile(path):
-            print("is zip")
-            zip_name = path.split('/')[-1].split('.')[0]
-            new_dir = f"/content/neur/train_files/instances/{zip_name}"
-            instances_zip = zipfile.ZipFile(path, 'r')
-            instances_zip.extractall(new_dir)
-            path = new_dir
-
-        #new_dir = "/content/neur/samples"
-        instances = glob.glob(f"{path}/*.pkl")
-        train_count = int(len(instances) * 0.8)
-        train_files = instances[0:train_count+1]
-        valid_files = instances[train_count:-1]
-        print(f" len(train) = {len(train_files)}")
-        print(f" len(valid) = {len(valid_files)}")
-        '''
-        for i in range(1, args.file_count + 1):
 
 
-            train_files.extend(
-                glob.glob(
-                    f"{STORE_DIR}/samples/1_item_placement_dagger{i}/train/sample_*.pkl"
-                )
-            )
-            valid_files.extend(
-                glob.glob(
-                    f"{STORE_DIR}/samples/1_item_placement_dagger{i}/valid/sample_*.pkl"
-                )
-            )
-        '''
+    train_files = []
+    valid_files = []
+    path = STORE_DIR
+    if zipfile.is_zipfile(path):
+        print("is zip")
+        zip_name = path.split('/')[-1].split('.')[0]
+        new_dir = f"/content/neur/train_files/instances/{zip_name}"
+        instances_zip = zipfile.ZipFile(path, 'r')
+        instances_zip.extractall(new_dir)
+        path = new_dir
 
-        running_dir = f"/content/gdrive/MyDrive/scip_logs/{zip_name}_class{POLICY_TYPE}"
+    #new_dir = "/content/neur/samples"
+    instances = glob.glob(f"{path}/*.pkl")
+    train_count = int(len(instances) * 0.8)
+    train_files = instances[0:train_count+1]
+    valid_files = instances[train_count:-1]
+    print(f" len(train) = {len(train_files)}")
+    print(f" len(valid) = {len(valid_files)}")
 
-    elif args.problem == "load_balancing":
-        train_files = []
-        valid_files = []
-        for i in range(1, args.file_count + 1):
-            train_files.extend(
-                glob.glob(
-                    f"{STORE_DIR}/samples/2_load_balancing_dagger{i}/train/sample_*.pkl"
-                )
-            )
-            valid_files.extend(
-                glob.glob(
-                    f"{STORE_DIR}/samples/2_load_balancing_dagger{i}/valid/sample_*.pkl"
-                )
-            )
-        print(len(train_files))
-        running_dir = f"{STORE_DIR}/train_files/{args.exp_name}{i}"
-
-    elif args.problem == "anonymous":
-        train_files = []
-        valid_files = []
-        path = STORE_DIR
-        if zipfile.is_zipfile(path):
-            print("is zip")
-            zip_name = path.split('/')[-1].split('.')[0]
-            new_dir = f"/content/neur/train_files/instances/{zip_name}"
-            instances_zip = zipfile.ZipFile(path, 'r')
-            instances_zip.extractall(new_dir)
-            path = new_dir
-
-        #new_dir = "/content/neur/samples"
-        instances = glob.glob(f"{path}/*.pkl")
-        train_count = int(len(instances) * 0.8)
-        train_files = instances[0:train_count+1]
-        valid_files = instances[train_count:-1]
-        print(f" len(train) = {len(train_files)}")
-        print(f" len(valid) = {len(valid_files)}")
-        '''
-        for i in range(1, args.file_count + 1):
+    running_dir = f"/content/gdrive/MyDrive/scip_logs/{zip_name}_class{POLICY_TYPE}"
 
 
-            train_files.extend(
-                glob.glob(
-                    f"{STORE_DIR}/samples/1_item_placement_dagger{i}/train/sample_*.pkl"
-                )
-            )
-            valid_files.extend(
-                glob.glob(
-                    f"{STORE_DIR}/samples/1_item_placement_dagger{i}/valid/sample_*.pkl"
-                )
-            )
-        '''
-
-        running_dir = f"/content/gdrive/MyDrive/scip_logs/{zip_name}_class{POLICY_TYPE}"
-        
-    else:
-        raise NotImplementedError
 
     pretrain_files = [f for i, f in enumerate(train_files) if i % 20 == 0]
     print(running_dir)
@@ -278,8 +209,11 @@ if __name__ == "__main__":
     import torch.nn.functional as F
     import torch_geometric
     from utilities import log, pad_tensor, GraphDataset, Scheduler
-    from agent_model import GNNPolicyItem, GNNPolicyLoad, GNNPolicyAno, GNNPolicyAlt_64, GNNPolicyAltDrop_64, \
-        GNNPolicyAlt_128, GNNPolicyAltDrop_128,GNNPolicyReccurent
+    from agent_model import GNNPolicy2_64_0, GNNPolicy2_64_1, GNNPolicy2_64_2, GNNPolicy2_64_3, GNNPolicy2_128_0, \
+    GNNPolicy2_128_1, GNNPolicy2_128_2, GNNPolicy2_128_3, GNNPolicy2_256_0, GNNPolicy2_256_1, GNNPolicy2_256_2, \
+    GNNPolicy2_256_3, GNNPolicy3_64_0, GNNPolicy3_64_1, GNNPolicy3_64_2, GNNPolicy3_64_3, GNNPolicy3_128_0, \
+    GNNPolicy3_128_1, GNNPolicy3_128_2, GNNPolicy3_128_3, GNNPolicy3_256_0, GNNPolicy3_256_1, GNNPolicy3_256_2, \
+    GNNPolicy3_256_3
 
     # randomization setup
     rng = np.random.RandomState(args.seed)
@@ -316,21 +250,70 @@ if __name__ == "__main__":
     )
 
     if POLICY_TYPE == 0:
-        policy = GNNPolicyItem().to(device)
+        policy = GNNPolicy2_64_0().to(device)
     elif POLICY_TYPE == 1:
-        policy = GNNPolicyLoad().to(device)
+        policy = GNNPolicy2_64_1().to(device)
     elif POLICY_TYPE == 2:
-        policy = GNNPolicyAno().to(device)
+        policy = GNNPolicy2_64_2().to(device)
     elif POLICY_TYPE == 3:
-        policy = GNNPolicyAlt_64().to(device)
+        policy = GNNPolicy2_64_3().to(device)
     elif POLICY_TYPE == 4:
-        policy = GNNPolicyAltDrop_64().to(device)
+        policy = GNNPolicy2_128_0().to(device)
     elif POLICY_TYPE == 5:
-        policy = GNNPolicyAlt_128().to(device)
+        policy = GNNPolicy2_128_1().to(device)
     elif POLICY_TYPE == 6:
-        policy = GNNPolicyAltDrop_128().to(device)
+        policy = GNNPolicy2_128_2().to(device)
     elif POLICY_TYPE == 7:
-        policy = GNNPolicyReccurent().to(device)
+        policy = GNNPolicy2_128_3().to(device)
+    elif POLICY_TYPE == 8:
+        policy = GNNPolicy2_256_0().to(device)
+    elif POLICY_TYPE == 9:
+        policy = GNNPolicy2_256_1().to(device)
+    elif POLICY_TYPE == 10:
+        policy = GNNPolicy2_256_2().to(device)
+    elif POLICY_TYPE == 11:
+        policy = GNNPolicy2_256_3().to(device)
+    elif POLICY_TYPE == 12:
+        policy = GNNPolicy2_256_0().to(device)
+    elif POLICY_TYPE == 13:
+        policy = GNNPolicy2_256_1().to(device)
+    elif POLICY_TYPE == 14:
+        policy = GNNPolicy2_256_2().to(device)
+    elif POLICY_TYPE == 15:
+        policy = GNNPolicy2_256_3().to(device)
+    
+    elif POLICY_TYPE == 16:
+        policy = GNNPolicy3_64_0().to(device)
+    elif POLICY_TYPE == 17:
+        policy = GNNPolicy3_64_1().to(device)
+    elif POLICY_TYPE == 18:
+        policy = GNNPolicy3_64_2().to(device)
+    elif POLICY_TYPE == 19:
+        policy = GNNPolicy3_64_3().to(device)
+    elif POLICY_TYPE == 20:
+        policy = GNNPolicy3_128_0().to(device)
+    elif POLICY_TYPE == 21:
+        policy = GNNPolicy3_128_1().to(device)
+    elif POLICY_TYPE == 22:
+        policy = GNNPolicy3_128_2().to(device)
+    elif POLICY_TYPE == 23:
+        policy = GNNPolicy3_128_3().to(device)
+    elif POLICY_TYPE == 24:
+        policy = GNNPolicy3_256_0().to(device)
+    elif POLICY_TYPE == 25:
+        policy = GNNPolicy3_256_1().to(device)
+    elif POLICY_TYPE == 26:
+        policy = GNNPolicy3_256_2().to(device)
+    elif POLICY_TYPE == 27:
+        policy = GNNPolicy3_256_3().to(device)
+    elif POLICY_TYPE == 28:
+        policy = GNNPolicy3_256_0().to(device)
+    elif POLICY_TYPE == 29:
+        policy = GNNPolicy3_256_1().to(device)
+    elif POLICY_TYPE == 30:
+        policy = GNNPolicy3_256_2().to(device)
+    elif POLICY_TYPE == 31:
+        policy = GNNPolicy3_256_3().to(device)
     else:
         raise NotImplementedError
     optimizer = torch.optim.Adam(policy.parameters(), lr=LR)
@@ -383,7 +366,7 @@ if __name__ == "__main__":
         )
         if scheduler.num_bad_epochs == 0:
             torch.save(
-                policy.state_dict(), pathlib.Path(running_dir) / "best_params.pkl"
+                policy.state_dict(), pathlib.Path(running_dir) / f"best_params_type{POLICY_TYPE}.pkl"
             )
             log(f"  best model so far", logfile)
         elif scheduler.num_bad_epochs == 10:
@@ -393,7 +376,7 @@ if __name__ == "__main__":
             break
 
     # load best parameters and run a final validation step
-    policy.load_state_dict(torch.load(pathlib.Path(running_dir) / "best_params.pkl"))
+    policy.load_state_dict(torch.load(pathlib.Path(running_dir) / f"best_params_type{POLICY_TYPE}.pkl"))
     valid_loss, valid_kacc = process(policy, valid_loader, top_k, None)
     log(
         f"BEST VALID LOSS: {valid_loss:0.3f} "
