@@ -395,8 +395,8 @@ if __name__ == "__main__":
     
     # evaluate
     import shutil
-    shutil.copy2(f"best_params_type{POLICY_TYPE}.pkl", "/content/explore_nuri/train_files")
-    os.rename(f"/content/explore_nuri/train_files/best_params_type{POLICY_TYPE}.pkl", f"/content/explore_nuri/train_files/type{POLICY_TYPE}.pk"l)
+    shutil.copy2(f"/{running_dir}/best_params_type{POLICY_TYPE}.pkl", "/content/explore_nuri/train_files")
+    os.rename(f"/content/explore_nuri/train_files/best_params_type{POLICY_TYPE}.pkl", f"/content/explore_nuri/train_files/type{POLICY_TYPE}.pkl")
 
     instances_path = pathlib.Path(f"/content/neur/Nuri/instances/0train/")
     instance_files = list(instances_path.glob("mas76.mps.gz"))
