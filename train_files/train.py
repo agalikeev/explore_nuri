@@ -8,6 +8,16 @@ import configparser
 import random
 import zipfile
 
+from dual import (
+    Policy,
+    ObservationFunction,
+)
+
+import ecole
+from common.environments import Branching as Environment  # environments
+from common.rewards import TimeLimitDualIntegral as BoundIntegral  # rewards
+
+
 cf = configparser.ConfigParser()
 cf.read("./configs/train.ini")
 STORE_DIR = cf.get("train", "STORE_DIR")
@@ -158,7 +168,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "-ptype", help="-policy type", type=int, default=0,
     )
-
+    parser.add_argument(
+    "-problem",
+    help="Problem benchmark to process.",
+    choices=["policy2_64_0", "policy2_64_1", "policy2_64_2","policy2_64_3", \
+    "policy2_128_0", "policy2_128_1", "policy2_128_2","policy2_128_3", \
+    "policy2_256_0", "policy2_256_1", "policy2_256_2","policy2_256_3", \
+    "policy3_64_0", "policy3_64_1", "policy3_64_2","policy3_64_3", \
+    "policy3_128_0", "policy3_128_1", "policy3_128_2","policy3_128_3", \
+    "policy3_256_0", "policy3_256_1", "policy3_256_2","policy3_256_3", \
+    ],
+)
     args = parser.parse_args()
     #POLICY_TYPE = args.ptype
     print(f"policy_type {POLICY_TYPE}")
@@ -257,6 +277,7 @@ if __name__ == "__main__":
         policy = GNNPolicy2_64_2().to(device)
     elif POLICY_TYPE == 3:
         policy = GNNPolicy2_64_3().to(device)
+
     elif POLICY_TYPE == 4:
         policy = GNNPolicy2_128_0().to(device)
     elif POLICY_TYPE == 5:
@@ -265,6 +286,7 @@ if __name__ == "__main__":
         policy = GNNPolicy2_128_2().to(device)
     elif POLICY_TYPE == 7:
         policy = GNNPolicy2_128_3().to(device)
+
     elif POLICY_TYPE == 8:
         policy = GNNPolicy2_256_0().to(device)
     elif POLICY_TYPE == 9:
@@ -273,46 +295,32 @@ if __name__ == "__main__":
         policy = GNNPolicy2_256_2().to(device)
     elif POLICY_TYPE == 11:
         policy = GNNPolicy2_256_3().to(device)
+      
     elif POLICY_TYPE == 12:
-        policy = GNNPolicy2_256_0().to(device)
-    elif POLICY_TYPE == 13:
-        policy = GNNPolicy2_256_1().to(device)
-    elif POLICY_TYPE == 14:
-        policy = GNNPolicy2_256_2().to(device)
-    elif POLICY_TYPE == 15:
-        policy = GNNPolicy2_256_3().to(device)
-    
-    elif POLICY_TYPE == 16:
         policy = GNNPolicy3_64_0().to(device)
-    elif POLICY_TYPE == 17:
+    elif POLICY_TYPE == 13:
         policy = GNNPolicy3_64_1().to(device)
-    elif POLICY_TYPE == 18:
+    elif POLICY_TYPE == 14:
         policy = GNNPolicy3_64_2().to(device)
-    elif POLICY_TYPE == 19:
+    elif POLICY_TYPE == 15:
         policy = GNNPolicy3_64_3().to(device)
-    elif POLICY_TYPE == 20:
+
+    elif POLICY_TYPE == 16:
         policy = GNNPolicy3_128_0().to(device)
-    elif POLICY_TYPE == 21:
+    elif POLICY_TYPE == 17:
         policy = GNNPolicy3_128_1().to(device)
-    elif POLICY_TYPE == 22:
+    elif POLICY_TYPE == 18:
         policy = GNNPolicy3_128_2().to(device)
-    elif POLICY_TYPE == 23:
+    elif POLICY_TYPE == 19:
         policy = GNNPolicy3_128_3().to(device)
-    elif POLICY_TYPE == 24:
+
+    elif POLICY_TYPE == 20:
         policy = GNNPolicy3_256_0().to(device)
-    elif POLICY_TYPE == 25:
+    elif POLICY_TYPE == 21:
         policy = GNNPolicy3_256_1().to(device)
-    elif POLICY_TYPE == 26:
+    elif POLICY_TYPE == 22:
         policy = GNNPolicy3_256_2().to(device)
-    elif POLICY_TYPE == 27:
-        policy = GNNPolicy3_256_3().to(device)
-    elif POLICY_TYPE == 28:
-        policy = GNNPolicy3_256_0().to(device)
-    elif POLICY_TYPE == 29:
-        policy = GNNPolicy3_256_1().to(device)
-    elif POLICY_TYPE == 30:
-        policy = GNNPolicy3_256_2().to(device)
-    elif POLICY_TYPE == 31:
+    elif POLICY_TYPE == 23:
         policy = GNNPolicy3_256_3().to(device)
     else:
         raise NotImplementedError
@@ -375,6 +383,7 @@ if __name__ == "__main__":
             log(f"  20 epochs without improvement, early stopping", logfile)
             break
 
+
     # load best parameters and run a final validation step
     policy.load_state_dict(torch.load(pathlib.Path(running_dir) / f"best_params_type{POLICY_TYPE}.pkl"))
     valid_loss, valid_kacc = process(policy, valid_loader, top_k, None)
@@ -383,3 +392,62 @@ if __name__ == "__main__":
         + "".join([f" acc@{k}: {acc:0.3f}" for k, acc in zip(top_k, valid_kacc)]),
         logfile,
     )
+    
+    # evaluate
+    import shutil
+    shutil.copy2(f"best_params_type{POLICY_TYPE}.pkl", "/content/explore_nuri/train_files")
+    os.rename(f"/content/explore_nuri/train_files/best_params_type{POLICY_TYPE}.pkl", f"/content/explore_nuri/train_files/type{POLICY_TYPE}.pk"l)
+
+    instances_path = pathlib.Path(f"/content/neur/Nuri/instances/0train/")
+    instance_files = list(instances_path.glob("mas76.mps.gz"))
+    inst = str(instance_files[0])
+    print(inst)
+
+    time_limit = 15 * 60
+
+    strbr = ecole.observation.StrongBranchingScores()
+    policy = Policy(problem=args.problem)
+
+    env = ecole.environment.Branching(observation_function=ObservationFunction(problem=args.problem))
+
+    observation, action_set, reward, done, info = env.reset(inst)
+    correct_predictions = 0
+    total_predictions = 0
+
+    while not done:
+        policy_action = policy(action_set, observation)
+
+        strbr_scores = strbr.extract(env.model, done)
+        strbr_action = action_set[strbr_scores[action_set].argmax()]
+
+        # не понмю, чем эти actionы являются, allcloes просто для примера
+        #if torch.allclose(policy_action, strbr_action):
+        if policy_action == strbr_action:
+            correct_predictions += 1
+        total_predictions += 1
+        print("======================================")
+        print(f"iteration {total_predictions}")
+        print(f"policy_action: {policy_action}")
+        print(f"strbr_action: {strbr_action}")
+        print(f"current accruracy: {correct_predictions/total_predictions}")
+
+
+        observation, action_set, reward, done, info = env.step(strbr_action)
+
+    print('accuracy of GNN', correct_predictions/total_predictions)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
