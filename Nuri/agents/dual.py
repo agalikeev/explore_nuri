@@ -4,7 +4,11 @@ import ecole as ec
 import numpy as np
 import collections
 import random
-from agents.agent_model import GNNPolicyItem, GNNPolicyLoad, GNNPolicyAno, GNNPolicyAlt_64, GNNPolicyAltDrop_64, GNNPolicyAlt_128, GNNPolicyAltDrop_128, GNNPolicyReccurent
+from agent_model import GNNPolicy2_64_0, GNNPolicy2_64_1, GNNPolicy2_64_2, GNNPolicy2_64_3, GNNPolicy2_128_0, \
+    GNNPolicy2_128_1, GNNPolicy2_128_2, GNNPolicy2_128_3, GNNPolicy2_256_0, GNNPolicy2_256_1, GNNPolicy2_256_2, \
+    GNNPolicy2_256_3, GNNPolicy3_64_0, GNNPolicy3_64_1, GNNPolicy3_64_2, GNNPolicy3_64_3, GNNPolicy3_128_0, \
+    GNNPolicy3_128_1, GNNPolicy3_128_2, GNNPolicy3_128_3, GNNPolicy3_256_0, GNNPolicy3_256_1, GNNPolicy3_256_2, \
+    GNNPolicy3_256_3
 
 
 class ObservationFunction(ec.observation.NodeBipartite):
@@ -23,55 +27,85 @@ class Policy():
 
         self.device = f"cuda:0"
         self.problem = problem
-        
-        if problem == 'item_placement':
-            params_path = 'item.pkl'
-            self.policy = GNNPolicyItem().to(self.device)
-        elif problem == 'load_balancing':
-            #params_path = 'load.pkl'
-            self.policy = None
-        elif problem == 'anonymous':
-            params_path = 'ano.pkl' 
-            self.policy = GNNPolicyAno().to(self.device)
-        elif problem == 'alt64':
-            params_path = 'alt64.pkl' 
-            self.policy = GNNPolicyAno().to(self.device)
-        elif problem == 'altdrop64':
-            params_path = 'altdrop64.pkl' 
-            self.policy = GNNPolicyAno().to(self.device)
-        elif problem == 'alt128':
-            params_path = 'alt128.pkl' 
-            self.policy = GNNPolicyAno().to(self.device)
-        elif problem == 'altdrop128':
-            params_path = 'altdrop128.pkl' 
-            self.policy = GNNPolicyAno().to(self.device)      
-        elif problem == 'rec':
-            params_path = 'rec.pkl' 
-            self.policy = GNNPolicyReccurent().to(self.device)                                                                          
-        else:
-            params_path = 'item.pkl'
-            self.policy = GNNPolicyItem().to(self.device)
-        if problem == 'item_placement':
-            policy0 = GNNPolicyItem().to(self.device)
-            policy1 = GNNPolicyItem().to(self.device)
-            policy2 = GNNPolicyItem().to(self.device)
-            policy0.load_state_dict(torch.load('item0.pkl'))
-            policy1.load_state_dict(torch.load('item1.pkl'))
-            policy2.load_state_dict(torch.load('item2.pkl'))
-            models = [policy0,policy1,policy2]
-            worker_state_dict=[x.state_dict() for x in models]
-            weight_keys=list(worker_state_dict[0].keys())
-            fed_state_dict=collections.OrderedDict()
-            for key in weight_keys:
-                key_sum=0
-                for i in range(len(models)):
-                    key_sum=key_sum+worker_state_dict[i][key]
-                fed_state_dict[key]=key_sum/len(models)
-            self.policy.load_state_dict(fed_state_dict)
-            self.policy.eval()
-        else:
-            self.policy.load_state_dict(torch.load(params_path))
-            self.policy.eval()
+
+        if problem == 'policy2_64_0':
+            params_path = 'type0.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy2_64_1':
+            params_path = 'type1.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy2_64_2':
+            params_path = 'type2.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy2_64_3':
+            params_path = 'type3.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+
+        if problem == 'policy2_128_0':
+            params_path = 'type4.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy2_128_1':
+            params_path = 'type5.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy2_128_2':
+            params_path = 'type6.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy2_128_3':
+            params_path = 'type7.pkl'
+
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy2_256_0':
+            params_path = 'type8.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy2_256_1':
+            params_path = 'type9.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy2_256_2':
+            params_path = 'type10.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy2_256_3':
+            params_path = 'type11.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)            
+
+
+        if problem == 'policy3_64_0':
+            params_path = 'type12.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy3_64_1':
+            params_path = 'type13.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy3_64_2':
+            params_path = 'type14.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy3_64_3':
+            params_path = 'type15.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+
+        if problem == 'policy3_128_0':
+            params_path = 'type16.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy3_128_1':
+            params_path = 'type17.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy3_128_2':
+            params_path = 'type18.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy3_128_3':
+            params_path = 'type19.pkl'
+            
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy3_256_0':
+            params_path = 'type20.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy3_256_1':
+            params_path = 'type21.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy3_256_2':
+            params_path = 'type22.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)
+        if problem == 'policy3_256_3':
+            params_path = 'type23.pkl'
+            self.policy = GNNPolicy2_64_0().to(self.device)   
 
     def seed(self, seed):
         self.rng = np.random.RandomState(seed)
