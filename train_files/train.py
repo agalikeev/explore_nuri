@@ -18,17 +18,7 @@ from common.environments import Branching as Environment  # environments
 from common.rewards import TimeLimitDualIntegral as BoundIntegral  # rewards
 
 
-cf = configparser.ConfigParser()
-cf.read("./configs/train.ini")
-STORE_DIR = cf.get("train", "STORE_DIR")
-# hyper parameters
-BATCH_SIZE = cf.getint("train", "BATCH_SIZE")
-PRETRAIN_BATCH_SIZE = cf.getint("train", "PRETRAIN_BATCH_SIZE")
-VALID_BATCH_SIZE = cf.getint("train", "VALID_BATCH_SIZE")
-LR = cf.getfloat("train", "LR")
-POLICY_TYPE = cf.getint("train", "POLICY_TYPE")
-TRAIN_NUM = cf.getint("train", "TRAIN_NUM")
-VALID_NUM = cf.getint("train", "VALID_NUM")
+
 
 
 def pretrain(policy, pretrain_loader):
@@ -177,6 +167,21 @@ if __name__ == "__main__":
     )
     '''
     args = parser.parse_args()
+
+    cf = configparser.ConfigParser()
+    cf.read(f"./configs/train{args.ptype}.ini")
+    STORE_DIR = cf.get("train", "STORE_DIR")
+    # hyper parameters
+    BATCH_SIZE = cf.getint("train", "BATCH_SIZE")
+    PRETRAIN_BATCH_SIZE = cf.getint("train", "PRETRAIN_BATCH_SIZE")
+    VALID_BATCH_SIZE = cf.getint("train", "VALID_BATCH_SIZE")
+    LR = cf.getfloat("train", "LR")
+    POLICY_TYPE = cf.getint("train", "POLICY_TYPE")
+    TRAIN_NUM = cf.getint("train", "TRAIN_NUM")
+    VALID_NUM = cf.getint("train", "VALID_NUM")
+
+
+
     #POLICY_TYPE = args.ptype
     print(f"policy_type {POLICY_TYPE}")
     top_k = [1, 3, 5, 10]
