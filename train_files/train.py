@@ -444,8 +444,9 @@ if __name__ == "__main__":
 
         observation, action_set, reward, done, info = env.step(strbr_action)
 
+    inst_name = inst.split('/')[-1].split('.')[0]
     print('accuracy of GNN', correct_predictions/total_predictions)
-    with open(f"/content/gdrive/MyDrive/compare_architecture/results/policy{POLICY_TYPE}_{inst}.txt", "w") as file:
+    with open(f"/content/gdrive/MyDrive/compare_architecture/results/policy{POLICY_TYPE}_{inst_name}.txt", "w") as file:
       file.write(f"accuracy of GNN: {correct_predictions/total_predictions}")
 
 
