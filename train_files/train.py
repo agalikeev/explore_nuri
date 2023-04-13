@@ -146,11 +146,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--problem", "-p",
-        help="MILP instance type to process.",
-        choices=["item_placement", "load_balancing", "anonymous"],
-    )
-    parser.add_argument(
         "--exp_name", help="set experiment name", type=str, required=True,
     )
     parser.add_argument(
@@ -168,6 +163,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-ptype", help="-policy type", type=int, default=0,
     )
+    '''
     parser.add_argument(
     "-problem",
     help="Problem benchmark to process.",
@@ -178,7 +174,8 @@ if __name__ == "__main__":
     "policy3_128_0", "policy3_128_1", "policy3_128_2","policy3_128_3", \
     "policy3_256_0", "policy3_256_1", "policy3_256_2","policy3_256_3", \
     ],
-)
+    )
+    '''
     args = parser.parse_args()
     #POLICY_TYPE = args.ptype
     print(f"policy_type {POLICY_TYPE}")
@@ -394,21 +391,29 @@ if __name__ == "__main__":
     )
     
     # evaluate
+    print("evaluate")
     import shutil
     shutil.copy2(f"/{running_dir}/best_params_type{POLICY_TYPE}.pkl", "/content/explore_nuri/train_files")
     os.rename(f"/content/explore_nuri/train_files/best_params_type{POLICY_TYPE}.pkl", f"/content/explore_nuri/train_files/type{POLICY_TYPE}.pkl")
 
-    instances_path = pathlib.Path(f"/content/neur/Nuri/instances/0train/")
+    instances_path = pathlib.Path(f"/content/explore_nuri/Nuri/instances/0train")
     instance_files = list(instances_path.glob("mas76.mps.gz"))
     inst = str(instance_files[0])
     print(inst)
 
     time_limit = 15 * 60
+    problems = ["policy2_64_0", "policy2_64_1", "policy2_64_2","policy2_64_3", \
+    "policy2_128_0", "policy2_128_1", "policy2_128_2","policy2_128_3", \
+    "policy2_256_0", "policy2_256_1", "policy2_256_2","policy2_256_3", \
+    "policy3_64_0", "policy3_64_1", "policy3_64_2","policy3_64_3", \
+    "policy3_128_0", "policy3_128_1", "policy3_128_2","policy3_128_3", \
+    "policy3_256_0", "policy3_256_1", "policy3_256_2","policy3_256_3", \
+    ]
 
     strbr = ecole.observation.StrongBranchingScores()
-    policy = Policy(problem=args.problem)
+    policy = Policy(problem=problems[POLICY_TYPE])
 
-    env = ecole.environment.Branching(observation_function=ObservationFunction(problem=args.problem))
+    env = ecole.environment.Branching(observation_function=ObservationFunction(problem=problems[POLICY_TYPE]))
 
     observation, action_set, reward, done, info = env.reset(inst)
     correct_predictions = 0
