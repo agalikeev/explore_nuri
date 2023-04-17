@@ -206,7 +206,7 @@ if __name__ == "__main__":
     print(f" len(train) = {len(train_files)}")
     print(f" len(valid) = {len(valid_files)}")
 
-    running_dir = f"/content/gdrive/MyDrive/scip_logs/{zip_name}_class{POLICY_TYPE}"
+    running_dir = f"/content/gdrive/MyDrive/correct_polic/{zip_name}_class{POLICY_TYPE}"
 
 
 
@@ -402,7 +402,7 @@ if __name__ == "__main__":
     os.rename(f"/content/explore_nuri/train_files/best_params_type{POLICY_TYPE}.pkl", f"/content/explore_nuri/train_files/type{POLICY_TYPE}.pkl")
 
     instances_path = pathlib.Path(f"/content/explore_nuri/Nuri/instances/0train")
-    instance_files = list(instances_path.glob("mas76.mps.gz"))
+    instance_files = list(instances_path.glob("roll3000.mps.gz"))
     inst = str(instance_files[0])
     print(inst)
 
@@ -435,11 +435,11 @@ if __name__ == "__main__":
         if policy_action == strbr_action:
             correct_predictions += 1
         total_predictions += 1
-        print("======================================")
-        print(f"iteration {total_predictions}")
-        print(f"policy_action: {policy_action}")
-        print(f"strbr_action: {strbr_action}")
-        print(f"current accruracy: {correct_predictions/total_predictions}")
+        #print("======================================")
+        #print(f"iteration {total_predictions}")
+        #print(f"policy_action: {policy_action}")
+        #print(f"strbr_action: {strbr_action}")
+        #print(f"current accruracy: {correct_predictions/total_predictions}")
 
 
         observation, action_set, reward, done, info = env.step(strbr_action)
