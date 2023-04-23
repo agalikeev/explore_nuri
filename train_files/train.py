@@ -380,6 +380,7 @@ if __name__ == "__main__":
                 policy.state_dict(), pathlib.Path(running_dir) / f"best_params_type{POLICY_TYPE}.pkl"
             )
             log(f"  best model so far", logfile)
+            
         elif scheduler.num_bad_epochs == 10:
             log(f"  10 epochs without improvement, decreasing learning rate", logfile)
         elif scheduler.num_bad_epochs == 20:
