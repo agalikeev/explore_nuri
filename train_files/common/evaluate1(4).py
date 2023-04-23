@@ -14,7 +14,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "problem",
     help="Problem benchmark to process.",
-    choices=["item_placement", "load_balancing", "anonymous","alt64", "altdrop64", "alt128", "altdrop128","rec"],
+    choices=["policy2_64_0", "policy2_64_1", "policy2_64_2","policy2_64_3", \
+    "policy2_128_0", "policy2_128_1", "policy2_128_2","policy2_128_3", \
+    "policy2_256_0", "policy2_256_1", "policy2_256_2","policy2_256_3", \
+    "policy3_64_0", "policy3_64_1", "policy3_64_2","policy3_64_3", \
+    "policy3_128_0", "policy3_128_1", "policy3_128_2","policy3_128_3", \
+    "policy3_256_0", "policy3_256_1", "policy3_256_2","policy3_256_3", \
+    ],
 )
 args = parser.parse_args()
 
