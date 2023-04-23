@@ -7,6 +7,7 @@ import numpy as np
 import configparser
 import random
 import zipfile
+import datetime
 
 from dual import (
     Policy,
@@ -205,8 +206,8 @@ if __name__ == "__main__":
     valid_files = instances[train_count:-1]
     print(f" len(train) = {len(train_files)}")
     print(f" len(valid) = {len(valid_files)}")
-
-    running_dir = f"/content/gdrive/MyDrive/correct_polic/{zip_name}_class{POLICY_TYPE}"
+    date_name = '_'.join(str(datetime.datetime.now()).split())
+    running_dir = f"/content/gdrive/MyDrive/correct_policy_test/{zip_name}_class{POLICY_TYPE}_{date_name}"
 
 
 
@@ -401,8 +402,8 @@ if __name__ == "__main__":
     shutil.copy2(f"/{running_dir}/best_params_type{POLICY_TYPE}.pkl", "/content/explore_nuri/train_files")
     os.rename(f"/content/explore_nuri/train_files/best_params_type{POLICY_TYPE}.pkl", f"/content/explore_nuri/train_files/type{POLICY_TYPE}.pkl")
 
-    instances_path = pathlib.Path(f"/content/explore_nuri/Nuri/instances/0train")
-    instance_files = list(instances_path.glob("roll3000.mps.gz"))
+    instances_path = pathlib.Path(f"/content/explore_nuri/Nuri/instances/train")
+    instance_files = list(instances_path.glob("mas76.mps.gz"))
     inst = str(instance_files[0])
     print(inst)
 
