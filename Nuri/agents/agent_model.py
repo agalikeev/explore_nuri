@@ -1016,8 +1016,8 @@ class GNNPolicy3_64_0(BaseModel):
 
         # VARIABLE EMBEDDING
         self.var_embedding = torch.nn.Sequential(
-            PreNormLayer(cons_nfeats),
-            torch.nn.Linear(cons_nfeats, emb_size),
+            PreNormLayer(var_nfeats),
+            torch.nn.Linear(var_nfeats, emb_size),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
             torch.nn.ReLU(),
