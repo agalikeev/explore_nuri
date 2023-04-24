@@ -377,9 +377,10 @@ if __name__ == "__main__":
         )
         if scheduler.num_bad_epochs == 0:
             torch.save(
-                policy.state_dict(), pathlib.Path(running_dir) / f"best_params_type{POLICY_TYPE}.pkl"
+                policy.state_dict(), pathlib.Path(running_dir) / f"type{POLICY_TYPE}.pkl"
             )
             log(f"  best model so far", logfile)
+            break
             
         elif scheduler.num_bad_epochs == 10:
             log(f"  10 epochs without improvement, decreasing learning rate", logfile)
@@ -404,7 +405,7 @@ if __name__ == "__main__":
     os.rename(f"/content/explore_nuri/train_files/best_params_type{POLICY_TYPE}.pkl", f"/content/explore_nuri/train_files/type{POLICY_TYPE}.pkl")
 
     instances_path = pathlib.Path(f"/content/explore_nuri/Nuri/instances/train")
-    instance_files = list(instances_path.glob("mas76.mps.gz"))
+    instance_files = list(instances_path.glob("n5-3.mps.gz"))
     inst = str(instance_files[0])
     print(inst)
 
