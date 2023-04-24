@@ -71,7 +71,7 @@ def process(policy, data_loader, top_k=[1, 3, 5, 10], optimizer=None):
     Returns
     -------
     mean_loss : float in [0, 1e+20]
-        Mean cross entropy loss.
+        Mean cross entropy loss.комментарии
     mean_kacc : np.ndarray
         Mean top k accuracy, for k in the user-provided list top_k.
     """
@@ -380,7 +380,6 @@ if __name__ == "__main__":
                 policy.state_dict(), pathlib.Path(running_dir) / f"type{POLICY_TYPE}.pkl"
             )
             log(f"  best model so far", logfile)
-            break
             
         elif scheduler.num_bad_epochs == 10:
             log(f"  10 epochs without improvement, decreasing learning rate", logfile)
