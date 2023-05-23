@@ -19,9 +19,6 @@ from common.environments import Branching as Environment  # environments
 from common.rewards import TimeLimitDualIntegral as BoundIntegral  # rewards
 
 
-
-
-
 def pretrain(policy, pretrain_loader):
     """
     Pre-trains all PreNorm layers in the model.
@@ -181,22 +178,20 @@ if __name__ == "__main__":
     TRAIN_NUM = cf.getint("train", "TRAIN_NUM")
     VALID_NUM = cf.getint("train", "VALID_NUM")
 
-
-
     #POLICY_TYPE = args.ptype
     print(f"policy_type {POLICY_TYPE}")
     top_k = [1, 3, 5, 10]
-
 
     train_files = []
     valid_files = []
     path = STORE_DIR
     if zipfile.is_zipfile(path):
-        print("is zip")
+        print(f"{path} is zip")
         zip_name = path.split('/')[-1].split('.')[0]
-        new_dir = f"/content/neur/train_files/instances/{zip_name}"
+        new_dir = f"{path.split('.')[0]}"
         instances_zip = zipfile.ZipFile(path, 'r')
         instances_zip.extractall(new_dir)
+        print(f"extract files from {path} to {new_dir}")
         path = new_dir
 
     #new_dir = "/content/neur/samples"
@@ -207,9 +202,9 @@ if __name__ == "__main__":
     print(f" len(train) = {len(train_files)}")
     print(f" len(valid) = {len(valid_files)}")
     date_name = '_'.join(str(datetime.datetime.now()).split())
-    running_dir = f"/content/gdrive/MyDrive/correct_policy_test/{zip_name}_class{POLICY_TYPE}_{date_name}"
 
 
+    running_dir = f"/content/gdrive/MyDrive/correct_policy_test/{path.split('/')[-1]}_class{POLICY_TYPE}_{date_name}"
 
     pretrain_files = [f for i, f in enumerate(train_files) if i % 20 == 0]
     print(running_dir)
@@ -377,7 +372,7 @@ if __name__ == "__main__":
         )
         if scheduler.num_bad_epochs == 0:
             torch.save(
-                policy.state_dict(), pathlib.Path(running_dir) / f"type{POLICY_TYPE}.pkl"
+                policy.state_dict(), pathlib.Path(running_dir) / f"best_params_type{POLICY_TYPE}.pkl"
             )
             log(f"  best model so far", logfile)
             
@@ -396,62 +391,6 @@ if __name__ == "__main__":
         + "".join([f" acc@{k}: {acc:0.3f}" for k, acc in zip(top_k, valid_kacc)]),
         logfile,
     )
-    
-    # evaluate
-    print("evaluate")
-    import shutil
-    shutil.copy2(f"/{running_dir}/best_params_type{POLICY_TYPE}.pkl", "/content/explore_nuri/train_files")
-    os.rename(f"/content/explore_nuri/train_files/best_params_type{POLICY_TYPE}.pkl", f"/content/explore_nuri/train_files/type{POLICY_TYPE}.pkl")
-
-    instances_path = pathlib.Path(f"/content/explore_nuri/Nuri/instances/train")
-    instance_files = list(instances_path.glob("n5-3.mps.gz"))
-    inst = str(instance_files[0])
-    print(inst)
-
-    time_limit = 15 * 60
-    problems = ["policy2_64_0", "policy2_64_1", "policy2_64_2","policy2_64_3", \
-    "policy2_128_0", "policy2_128_1", "policy2_128_2","policy2_128_3", \
-    "policy2_256_0", "policy2_256_1", "policy2_256_2","policy2_256_3", \
-    "policy3_64_0", "policy3_64_1", "policy3_64_2","policy3_64_3", \
-    "policy3_128_0", "policy3_128_1", "policy3_128_2","policy3_128_3", \
-    "policy3_256_0", "policy3_256_1", "policy3_256_2","policy3_256_3", \
-    ]
-
-    strbr = ecole.observation.StrongBranchingScores()
-    policy = Policy(problem=problems[POLICY_TYPE])
-
-    env = ecole.environment.Branching(observation_function=ObservationFunction(problem=problems[POLICY_TYPE]))
-
-    observation, action_set, reward, done, info = env.reset(inst)
-    correct_predictions = 0
-    total_predictions = 0
-
-    while not done:
-        policy_action = policy(action_set, observation)
-
-        strbr_scores = strbr.extract(env.model, done)
-        strbr_action = action_set[strbr_scores[action_set].argmax()]
-
-        # не понмю, чем эти actionы являются, allcloes просто для примера
-        #if torch.allclose(policy_action, strbr_action):
-        if policy_action == strbr_action:
-            correct_predictions += 1
-        total_predictions += 1
-        #print("======================================")
-        #print(f"iteration {total_predictions}")
-        #print(f"policy_action: {policy_action}")
-        #print(f"strbr_action: {strbr_action}")
-        #print(f"current accruracy: {correct_predictions/total_predictions}")
-
-
-        observation, action_set, reward, done, info = env.step(strbr_action)
-
-    inst_name = inst.split('/')[-1].split('.')[0]
-    print('accuracy of GNN', correct_predictions/total_predictions)
-    with open(f"/content/gdrive/MyDrive/compare_architecture/results/policy{POLICY_TYPE}_{inst_name}.txt", "w") as file:
-      file.write(f"accuracy of GNN: {correct_predictions/total_predictions}")
-
-
 
 
 
