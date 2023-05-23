@@ -203,7 +203,7 @@ if __name__ == "__main__":
     print(f" len(valid) = {len(valid_files)}")
     date_name = '_'.join(str(datetime.datetime.now()).split())
 
-
+    #директория для сохранения
     running_dir = f"/content/gdrive/MyDrive/correct_policy_test/{path.split('/')[-1]}_class{POLICY_TYPE}_{date_name}"
 
     pretrain_files = [f for i, f in enumerate(train_files) if i % 20 == 0]
