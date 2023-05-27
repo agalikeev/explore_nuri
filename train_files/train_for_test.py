@@ -355,8 +355,8 @@ if __name__ == "__main__":
                 ),
                 logfile,
             )
-
-        scheduler.step(train_loss)
+        if epoch != 0:
+            scheduler.step(train_loss)
         torch.save(
             policy.state_dict(), pathlib.Path(running_dir) / f"params_{epoch}",
         )
