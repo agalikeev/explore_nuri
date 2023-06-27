@@ -24,15 +24,15 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-from agents.dual import (
+from dual import (
     Policy,
     ObservationFunction,
 )  # agents.dual submissions.random.
 from environments import Branching as Environment  # environments
 from rewards import TimeLimitDualIntegral as BoundIntegral  # rewards
 
-instances_path = pathlib.Path(f"/content/neur/Nuri/instances/0train/")
-instance_files = list(instances_path.glob("*.mps.gz"))
+instances_path = pathlib.Path(f"/content/explore_nuri/Nuri/instances/1_item_placement/train")
+instance_files = list(instances_path.glob("item_placement_0.mps.gz"))
 inst = str(instance_files[0])
 print(inst)
 
@@ -47,9 +47,9 @@ observation, action_set, reward, done, info = env.reset(inst)
 correct_predictions = 0
 total_predictions = 0
 rand_accuracy = 0
+total_action_set = 0
 
 while not done:
-    rand_accuracy += 1 / len(action_set)
     policy_action = policy(action_set, observation)
 
     strbr_scores = strbr.extract(env.model, done)
@@ -60,6 +60,8 @@ while not done:
     if policy_action == strbr_action:
         correct_predictions += 1
     total_predictions += 1
+    total_action_set += len(action_set)
+    rand_accuracy =  total_predictions / total_action_set
     print("======================================")
     print(f"iteration {total_predictions}")
     print(f"policy_action: {policy_action}")
