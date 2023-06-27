@@ -12,7 +12,7 @@ import sys
 sys.path.insert(1, str(pathlib.Path.cwd()))
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "problem",
+    "-problem",
     help="Problem benchmark to process.",
     choices=["policy2_64_0", "policy2_64_1", "policy2_64_2","policy2_64_3", \
     "policy2_128_0", "policy2_128_1", "policy2_128_2","policy2_128_3", \
@@ -46,8 +46,10 @@ env = ecole.environment.Branching(observation_function=ObservationFunction(probl
 observation, action_set, reward, done, info = env.reset(inst)
 correct_predictions = 0
 total_predictions = 0
+rand_accuracy = 0
 
 while not done:
+    rand_accuracy += 1 / len(action_set)
     policy_action = policy(action_set, observation)
 
     strbr_scores = strbr.extract(env.model, done)
@@ -63,7 +65,7 @@ while not done:
     print(f"policy_action: {policy_action}")
     print(f"strbr_action: {strbr_action}")
     print(f"current accruracy: {correct_predictions/total_predictions}")
-
+    print(f"random accuracy:  {rand_accuracy}")
 
     observation, action_set, reward, done, info = env.step(strbr_action)
 
