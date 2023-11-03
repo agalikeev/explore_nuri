@@ -9,7 +9,7 @@ import numpy as np
 
 import sys
 
-sys.path.insert(1, str(pathlib.Path.cwd()))
+sys.path.insert(1, '/'.join(str(pathlib.Path.cwd()).split('/')[0:-1]))
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "-problem",
@@ -28,12 +28,11 @@ from dual import (
     Policy,
     ObservationFunction,
 )  # agents.dual submissions.random.
+
 from environments import Branching as Environment  # environments
 from rewards import TimeLimitDualIntegral as BoundIntegral  # rewards
 
-instances_path = pathlib.Path(f"/content/explore_nuri/Nuri/instances/1_item_placement/train")
-instance_files = list(instances_path.glob("item_placement_0.mps.gz"))
-inst = str(instance_files[0])
+inst = "/content/explore_nuri/Nuri/instances/0train/mas76.mps.gz"
 print(inst)
 
 time_limit = 15 * 60
@@ -55,17 +54,31 @@ while not done:
     strbr_scores = strbr.extract(env.model, done)
     strbr_action = action_set[strbr_scores[action_set].argmax()]
 
-    # не понмю, чем эти actionы являются, allcloes просто для примера
     #if torch.allclose(policy_action, strbr_action):
-    if policy_action == strbr_action:
+    if policy_action.item() == strbr_action:
         correct_predictions += 1
     total_predictions += 1
     total_action_set += len(action_set)
     rand_accuracy =  total_predictions / total_action_set
+    policty_action_id = np.where(action_set == policy_action.item())[0][0]
+    policy_score = strbr_scores[action_set][policty_action_id]
+    sorted_strbr_scores = sorted(strbr_scores[action_set], reverse=True)
+    #policy_score_top = np.where(sorted_strbr_scores == policy_score)[0][0]
+
     print("======================================")
-    print(f"iteration {total_predictions}")
+    print(f"iteration: {total_predictions}")
+    print(f"strbr_scores[action_set]: {strbr_scores[action_set]}")
+    print(f"sorted sb: {sorted_strbr_scores}")
+    print(f"policy_score: {policy_score}")
+    print(f"len(sorted_strbr_scores):{len(sorted_strbr_scores)}, len(action_set): {len(action_set)}, len(strbr_scores[action_set]): {len(strbr_scores[action_set])}")
+    #print(action_set, type(action_set), policty_action_id)
+    #print(f"policy_score_top: {policy_score_top}, len(action): {len(action_set)}")
+    #print(f"acc: {policy_score_top/len(action_set)}")
+
     print(f"policy_action: {policy_action}")
     print(f"strbr_action: {strbr_action}")
+    print(f"action_set: {action_set}")
+    print(f"strbr_scores: {strbr_scores[action_set]}")
     print(f"current accruracy: {correct_predictions/total_predictions}")
     print(f"random accuracy:  {rand_accuracy}")
 
