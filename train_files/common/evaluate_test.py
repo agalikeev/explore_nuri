@@ -47,7 +47,7 @@ correct_predictions = 0
 total_predictions = 0
 rand_accuracy = 0
 total_action_set = 0
-
+sum_acc = 0
 while not done:
     policy_action = policy(action_set, observation)
 
@@ -62,26 +62,27 @@ while not done:
     rand_accuracy =  total_predictions / total_action_set
     policty_action_id = np.where(action_set == policy_action.item())[0][0]
     policy_score = strbr_scores[action_set][policty_action_id]
-    sorted_strbr_scores = sorted(strbr_scores[action_set], reverse=True)
-    #policy_score_top = np.where(sorted_strbr_scores == policy_score)[0][0]
-
+    sorted_strbr_scores = sorted(strbr_scores[action_set])
+    policy_score_top = np.where(sorted_strbr_scores == policy_score)[0][0]
+    sum_acc = sum_acc + policy_score_top / len(action_set)
     print("======================================")
     print(f"iteration: {total_predictions}")
-    print(f"strbr_scores[action_set]: {strbr_scores[action_set]}")
+    #print(f"strbr_scores[action_set]: {strbr_scores[action_set]}")
     print(f"sorted sb: {sorted_strbr_scores}")
     print(f"policy_score: {policy_score}")
-    print(f"len(sorted_strbr_scores):{len(sorted_strbr_scores)}, len(action_set): {len(action_set)}, len(strbr_scores[action_set]): {len(strbr_scores[action_set])}")
+    #print(f"len(sorted_strbr_scores):{len(sorted_strbr_scores)}, len(action_set): {len(action_set)}, len(strbr_scores[action_set]): {len(strbr_scores[action_set])}")
     #print(action_set, type(action_set), policty_action_id)
     #print(f"policy_score_top: {policy_score_top}, len(action): {len(action_set)}")
-    #print(f"acc: {policy_score_top/len(action_set)}")
 
     print(f"policy_action: {policy_action}")
     print(f"strbr_action: {strbr_action}")
-    print(f"action_set: {action_set}")
-    print(f"strbr_scores: {strbr_scores[action_set]}")
-    print(f"current accruracy: {correct_predictions/total_predictions}")
+    #print(f"action_set: {action_set}")
+    #print(f"strbr_scores: {strbr_scores[action_set]}")
+    print(f"current accuracy: {correct_predictions/total_predictions}")
     print(f"random accuracy:  {rand_accuracy}")
+    print(f"top_acc: {sum_acc/total_predictions}")
 
     observation, action_set, reward, done, info = env.step(strbr_action)
 
 print('accuracy of GNN', correct_predictions/total_predictions)
+print('top accuracy', sum_acc/total_predictions)
