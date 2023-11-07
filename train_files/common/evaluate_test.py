@@ -52,6 +52,8 @@ sum_metric2 = 0 # policy_score / strbr_score
 sum_rand_metric1 = 0
 sum_rand_metric2 = 0
 
+sum_err = 0
+sum_rand_err = 0
 total_action_set = 0
 sum_acc = 0
 
@@ -75,29 +77,41 @@ while not done:
     sum_metric1 += policy_score_top / len(action_set)
     sum_metric2 += policy_score / sorted_strbr_scores[-1]
 
-    #sum_rand_metric1 += 
+    sum_rand_metric1 += 0.5 * (len(action_set) + 1) / len(action_set)
     sum_rand_metric2 += sum(sorted_strbr_scores) / (len(sorted_strbr_scores) * sorted_strbr_scores[-1])
 
-    sum_acc = sum_acc + policy_score_top / len(action_set)
+    sum_err +=(sorted_strbr_scores[-1] - policy_score)
+    sum_rand_err += (sorted_strbr_scores[-1] - sum(sorted_strbr_scores) / len(sorted_strbr_scores))
     print("======================================")
     print(f"iteration: {total_predictions}")
     #print(f"strbr_scores[action_set]: {strbr_scores[action_set]}")
     print(f"sorted sb: {sorted_strbr_scores}")
     print(f"policy_score: {policy_score}")
+    print(f"strbr_score: {sorted_strbr_scores[-1]}")
     print(f"policy_score_top {policy_score_top}")
 
     print(f"policy_action: {policy_action}")
     print(f"strbr_action: {strbr_action}")
     print(f"action_set: {action_set}")
 
-    print(f"current accuracy: {correct_predictions/total_predictions}")
+    print(f"current rough accuracy: {correct_predictions/total_predictions}")
     print(f"random accuracy:  {rand_accuracy}")
 
     print(f"metric1: {sum_metric1 / total_predictions}")
+    print(f"rand_metric1: {sum_rand_metric1 / total_predictions}")
+
     print(f"metric2: {sum_metric2 / total_predictions}")
     print(f"rand_metric2: {sum_rand_metric2 / total_predictions}")
 
+    print(f"sum_err: {sum_err/total_predictions}")
+    print(f"rand_sum_err: {sum_rand_err / total_predictions}")
     observation, action_set, reward, done, info = env.step(strbr_action)
 
-print('accuracy of GNN', correct_predictions/total_predictions)
-print('top accuracy', sum_acc/total_predictions)
+print(f"total rough accuracy {correct_predictions/total_predictions}")
+print(f"total random rought accuracy:  {rand_accuracy}")
+
+print(f"total metric1: {sum_metric1 / total_predictions}")
+print(f"total rand_metric1: {sum_rand_metric1 / total_predictions}")
+
+print(f"total metric2: {sum_metric2 / total_predictions}")
+print(f"total rand_metric2: {sum_rand_metric2 / total_predictions}")
