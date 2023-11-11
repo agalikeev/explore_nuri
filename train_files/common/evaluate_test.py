@@ -3,11 +3,11 @@ import csv
 import json
 import pathlib
 import time
-
+import datetime
 import ecole
 import numpy as np
-
 import sys
+import pandas as pd
 
 sys.path.insert(1, '/'.join(str(pathlib.Path.cwd()).split('/')[0:-1]))
 parser = argparse.ArgumentParser()
@@ -33,6 +33,8 @@ from environments import Branching as Environment  # environments
 from rewards import TimeLimitDualIntegral as BoundIntegral  # rewards
 
 inst = "/content/explore_nuri/Nuri/instances/train_test/mas76.mps.gz"
+out_dir = "/content/gdrive/MyDrive/evaluate_data"
+
 print(f"instance:{inst}")
 
 time_limit = 15 * 60
@@ -57,8 +59,18 @@ sum_rand_err = 0
 total_action_set = 0
 sum_acc = 0
 
-while not done:
+acc_list = {
+  'metric1':np.array([]),
+  'exp_metric1':np.array([]),
+  'metric2':np.array([]),
+  'exp_metric2':np.array([]),
+  'err':np.array([]),
+  'exp_err':np.array([]),
+}
 
+while not done:
+    if total_predictions == 10:
+      break
     policy_action = policy(action_set, observation)
     strbr_scores = strbr.extract(env.model, done)
     strbr_action = action_set[strbr_scores[action_set].argmax()]
@@ -73,7 +85,14 @@ while not done:
     policy_score = strbr_scores[action_set][policty_action_id]
     sorted_strbr_scores = sorted(strbr_scores[action_set])
     policy_score_top = np.where(sorted_strbr_scores == policy_score)[0][0]
-    
+
+    np.append(acc_list['metric1'], policy_score_top / len(action_set))
+    np.append(acc_list['metric2'], policy_score_top / len(action_set))
+    np.append(acc_list['exp_metric1'], 0.5 * (len(action_set) + 1) / len(action_set))
+    np.append(acc_list['exp_metric2'], sum(sorted_strbr_scores) / (len(sorted_strbr_scores) * sorted_strbr_scores[-1]))
+    np.append(acc_list['err'], sorted_strbr_scores[-1] - policy_score)
+    np.append(acc_list['exp_err'], sorted_strbr_scores[-1] - sum(sorted_strbr_scores) / len(sorted_strbr_scores))
+
     sum_metric1 += policy_score_top / len(action_set)
     sum_metric2 += policy_score / sorted_strbr_scores[-1]
 
@@ -115,3 +134,9 @@ print(f"total rand_metric1: {sum_rand_metric1 / total_predictions}")
 
 print(f"total metric2: {sum_metric2 / total_predictions}")
 print(f"total rand_metric2: {sum_rand_metric2 / total_predictions}")
+
+date_name = '_'.join(str(datetime.datetime.now()).split())
+inst_name = inst.split('/')[-1].split('.')[0]
+
+with open(f"{out_dir}/{inst_name}_{date_name}.json", "w") as file:
+    json.dump(acc_list, file)
