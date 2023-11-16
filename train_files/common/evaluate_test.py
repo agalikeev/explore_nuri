@@ -155,15 +155,22 @@ print(f"total rough accuracy {correct_predictions/total_predictions}")
 print(f"total random rought accuracy:  {exp_rough_accuracy}")
 
 print(f"total metric1: {sum_metric1 / total_predictions}")
-print(f"total rand_metric1: {sum_rand_metric1 / total_predictions}")
+print(f"total expected metric1: {sum_rand_metric1 / total_predictions}")
 
 print(f"total metric2: {sum_metric2 / total_predictions}")
-print(f"total rand_metric2: {sum_rand_metric2 / total_predictions}")
+print(f"total expected metric2: {sum_rand_metric2 / total_predictions}")
+
+print(f"total error: {sum_err/total_predictions}")
+print(f"total expected error: {sum_rand_err / total_predictions}")
 
 date_name = '_'.join(str(datetime.datetime.now()).split())
 inst_name = inst.split('/')[-1].split('.')[0]
 fileout = f"{out_dir}/{inst_name}_{date_name}.pkl"
 print(f"acc_list[rand_metric1]: {acc_list['rand_metric1']}")
+
+acc_list['sum_metric1'] =sum_metric1 / total_predictions
+acc_list['sum_metric2'] =sum_metric2 / total_predictions
+
 
 with gzip.open(fileout, 'wb') as f:
     pickle.dump(acc_list, f)
