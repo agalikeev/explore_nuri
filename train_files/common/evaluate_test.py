@@ -75,7 +75,7 @@ acc_list = {
 }
 
 while not done:
-    if total_predictions == 10:
+    if total_predictions == 1000:
       break
     policy_action = policy(action_set, observation)
     strbr_scores = strbr.extract(env.model, done)
@@ -103,7 +103,7 @@ while not done:
     acc_list['exp_metric2'] = np.append(acc_list['exp_metric2'], sum(sorted_strbr_scores) / (len(sorted_strbr_scores) * sorted_strbr_scores[-1]))
     acc_list['err'] = np.append(acc_list['err'], sorted_strbr_scores[-1] - policy_score)
     acc_list['exp_err'] = np.append(acc_list['exp_err'], sorted_strbr_scores[-1] - sum(sorted_strbr_scores) / len(sorted_strbr_scores))
-    
+
     acc_list['rand_metric1'] =np.append(acc_list['rand_metric1'], rand_scores_top[0] / len(action_set))
     acc_list['rand_metric2'] =np.append(acc_list['rand_metric2'], rand_scores[0] / sorted_strbr_scores[-1])
     acc_list['rand_err'] = np.append(acc_list['rand_err'], sorted_strbr_scores[-1] - rand_scores[0])
