@@ -104,9 +104,9 @@ while not done:
     acc_list['err'] = np.append(acc_list['err'], sorted_strbr_scores[-1] - policy_score)
     acc_list['exp_err'] = np.append(acc_list['exp_err'], sorted_strbr_scores[-1] - sum(sorted_strbr_scores) / len(sorted_strbr_scores))
     if total_predictions <=1:
-        acc_list['rand_metric1'] = np.array(np.array([rand_score_top / len(action_set) for rand_score_top in rand_scores_top]))
-        acc_list['rand_metric2'] =np.array(np.array([rand_score / sorted_strbr_scores[-1] for rand_score in rand_scores]))
-        acc_list['rand_err'] = np.array(np.array([sorted_strbr_scores[-1] - rand_score for rand_score in rand_scores]))
+        acc_list['rand_metric1'] =np.array([rand_score_top / len(action_set) for rand_score_top in rand_scores_top])
+        acc_list['rand_metric2'] =np.array([rand_score / sorted_strbr_scores[-1] for rand_score in rand_scores])
+        acc_list['rand_err'] = np.array([sorted_strbr_scores[-1] - rand_score for rand_score in rand_scores])
     else:
         acc_list['rand_metric1'] = np.array([*acc_list['rand_metric1'], np.array([rand_score_top / len(action_set) for rand_score_top in rand_scores_top])])
         acc_list['rand_metric2'] = np.array([*acc_list['rand_metric2'], np.array([rand_score / sorted_strbr_scores[-1] for rand_score in rand_scores])])
@@ -170,7 +170,7 @@ print(f"acc_list[rand_metric1]: {acc_list['rand_metric1']}")
 
 acc_list['sum_metric1'] = (sum_metric1 / total_predictions, sum_rand_metric1 / total_predictions)
 acc_list['sum_metric2'] = (sum_metric2 / total_predictions, sum_rand_metric2 / total_predictions)
-acc_list['err'] = (sum_err / total_predictions, sum_rand_err / total_predictions)
+acc_list['sum_err'] = (sum_err / total_predictions, sum_rand_err / total_predictions)
 
 
 with gzip.open(fileout, 'wb') as f:
