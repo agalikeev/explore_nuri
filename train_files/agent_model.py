@@ -86,107 +86,10 @@ class PreNormLayer(torch.nn.Module):
         self.trainable = False
 
 
-class BipartiteGraphConvolution64(torch_geometric.nn.MessagePassing):
-    def __init__(self):
+class BipartiteGraphConvolution(torch_geometric.nn.MessagePassing):
+    def __init__(self, emb_size):
         super().__init__("add")
-        emb_size = 64
-
-        self.feature_module_left = torch.nn.Sequential(
-            torch.nn.Linear(emb_size, emb_size)
-        )
-        self.feature_module_edge = torch.nn.Sequential(
-            torch.nn.Linear(1, emb_size, bias=False)
-        )
-        self.feature_module_right = torch.nn.Sequential(
-            torch.nn.Linear(emb_size, emb_size, bias=False)
-        )
-        self.feature_module_final = torch.nn.Sequential(
-            PreNormLayer(1, shift=False),
-            torch.nn.ReLU(),
-            torch.nn.Linear(emb_size, emb_size),
-        )
-
-        self.post_conv_module = torch.nn.Sequential(PreNormLayer(1, shift=False))
-
-        # output_layers
-        self.output_module = torch.nn.Sequential(
-            torch.nn.Linear(2 * emb_size, emb_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(emb_size, emb_size),
-        )
-
-    def forward(self, left_features, edge_indices, edge_features, right_features):
-        output = self.propagate(
-            edge_indices,
-            size=(left_features.shape[0], right_features.shape[0]),
-            node_features=(left_features, right_features),
-            edge_features=edge_features,
-        )
-        return self.output_module(
-            torch.cat([self.post_conv_module(output), right_features], dim=-1)
-        )
-
-    def message(self, node_features_i, node_features_j, edge_features):
-        output = self.feature_module_final(
-            self.feature_module_left(node_features_i)
-            + self.feature_module_edge(edge_features)
-            + self.feature_module_right(node_features_j)
-        )
-        return output
-
-
-class BipartiteGraphConvolution128(torch_geometric.nn.MessagePassing):
-    def __init__(self):
-        super().__init__("add")
-        emb_size = 128
-
-        self.feature_module_left = torch.nn.Sequential(
-            torch.nn.Linear(emb_size, emb_size)
-        )
-        self.feature_module_edge = torch.nn.Sequential(
-            torch.nn.Linear(1, emb_size, bias=False)
-        )
-        self.feature_module_right = torch.nn.Sequential(
-            torch.nn.Linear(emb_size, emb_size, bias=False)
-        )
-        self.feature_module_final = torch.nn.Sequential(
-            PreNormLayer(1, shift=False),
-            torch.nn.ReLU(),
-            torch.nn.Linear(emb_size, emb_size),
-        )
-
-        self.post_conv_module = torch.nn.Sequential(PreNormLayer(1, shift=False))
-
-        # output_layers
-        self.output_module = torch.nn.Sequential(
-            torch.nn.Linear(2 * emb_size, emb_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(emb_size, emb_size),
-        )
-
-    def forward(self, left_features, edge_indices, edge_features, right_features):
-        output = self.propagate(
-            edge_indices,
-            size=(left_features.shape[0], right_features.shape[0]),
-            node_features=(left_features, right_features),
-            edge_features=edge_features,
-        )
-        return self.output_module(
-            torch.cat([self.post_conv_module(output), right_features], dim=-1)
-        )
-
-    def message(self, node_features_i, node_features_j, edge_features):
-        output = self.feature_module_final(
-            self.feature_module_left(node_features_i)
-            + self.feature_module_edge(edge_features)
-            + self.feature_module_right(node_features_j)
-        )
-        return output
-
-class BipartiteGraphConvolution256(torch_geometric.nn.MessagePassing):
-    def __init__(self):
-        super().__init__("add")
-        emb_size = 256
+        #emb_size = 64
 
         self.feature_module_left = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size)
@@ -291,8 +194,8 @@ class GNNPolicy2_64_0(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -355,8 +258,8 @@ class GNNPolicy2_64_1(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -416,8 +319,8 @@ class GNNPolicy2_64_2(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -477,8 +380,8 @@ class GNNPolicy2_64_3(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -534,8 +437,8 @@ class GNNPolicy2_128_0(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -598,8 +501,8 @@ class GNNPolicy2_128_1(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -659,8 +562,8 @@ class GNNPolicy2_128_2(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -720,8 +623,8 @@ class GNNPolicy2_128_3(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -777,8 +680,8 @@ class GNNPolicy2_256_0(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -841,8 +744,8 @@ class GNNPolicy2_256_1(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -902,8 +805,8 @@ class GNNPolicy2_256_2(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -963,8 +866,8 @@ class GNNPolicy2_256_3(BaseModel):
             torch.nn.ReLU(),
         )
         
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1025,8 +928,8 @@ class GNNPolicy3_64_0(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1095,8 +998,8 @@ class GNNPolicy3_64_1(BaseModel):
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1162,8 +1065,8 @@ class GNNPolicy3_64_2(BaseModel):
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1229,8 +1132,8 @@ class GNNPolicy3_64_3(BaseModel):
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1290,8 +1193,8 @@ class GNNPolicy3_128_0(BaseModel):
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1360,8 +1263,8 @@ class GNNPolicy3_128_1(BaseModel):
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1427,8 +1330,8 @@ class GNNPolicy3_128_2(BaseModel):
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1494,8 +1397,8 @@ class GNNPolicy3_128_3(BaseModel):
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1555,8 +1458,8 @@ class GNNPolicy3_256_0(BaseModel):
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1625,8 +1528,8 @@ class GNNPolicy3_256_1(BaseModel):
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1692,8 +1595,8 @@ class GNNPolicy3_256_2(BaseModel):
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1759,8 +1662,8 @@ class GNNPolicy3_256_3(BaseModel):
             torch.nn.ReLU(),            
         )
         
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
