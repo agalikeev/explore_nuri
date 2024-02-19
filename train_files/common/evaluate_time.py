@@ -17,7 +17,7 @@ if __name__ == "__main__":
     #running_dir = f'train_files/trained_models/{prob}'
     #running_dir = 'train_files/trained_models/item_placement'
     running_dir = f'/content/gdrive/MyDrive/correct_policy/mas76_for_compare_policy0'
-    policy_num = running_dir[-1]
+    policy_num = int(running_dir[-1])
     print("policy_num", policy_num)
     # import pytorch **after** cuda setup
     import torch
@@ -34,7 +34,13 @@ if __name__ == "__main__":
     GNNPolicy3_128_1, GNNPolicy3_128_2, GNNPolicy3_128_3, GNNPolicy3_256_0, GNNPolicy3_256_1, GNNPolicy3_256_2, \
     GNNPolicy3_256_3
 
-    policy = GNNPolicy2_64_0().to(device)
+    policy_list = [GNNPolicy2_64_0(), GNNPolicy2_64_1(), GNNPolicy2_64_2(), GNNPolicy2_64_3(), GNNPolicy2_128_0(), \
+    GNNPolicy2_128_1(), GNNPolicy2_128_2(), GNNPolicy2_128_3(), GNNPolicy2_256_0(), GNNPolicy2_256_1(), GNNPolicy2_256_2(), \
+    GNNPolicy2_256_3(), GNNPolicy3_64_0(), GNNPolicy3_64_1(), GNNPolicy3_64_2(), GNNPolicy3_64_3(), GNNPolicy3_128_0(), \
+    GNNPolicy3_128_1(), GNNPolicy3_128_2(), GNNPolicy3_128_3(), GNNPolicy3_256_0(), GNNPolicy3_256_1(), GNNPolicy3_256_2(), \
+    GNNPolicy3_256_3()]
+
+    policy = policy_list[policy_num].to(device)
     policy.load_state_dict(torch.load(f'{pathlib.Path(running_dir)}/best_params_type{policy_num}.pkl', map_location=device))
 
     time_limit = 600
