@@ -86,10 +86,10 @@ class PreNormLayer(torch.nn.Module):
         self.trainable = False
 
 
-class BipartiteGraphConvolution64(torch_geometric.nn.MessagePassing):
-    def __init__(self):
+class BipartiteGraphConvolution(torch_geometric.nn.MessagePassing):
+    def __init__(self, emb_size):
         super().__init__("add")
-        emb_size = 64
+        #emb_size = 64
 
         self.feature_module_left = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size)
@@ -134,11 +134,10 @@ class BipartiteGraphConvolution64(torch_geometric.nn.MessagePassing):
         )
         return output
 
-
-class BipartiteGraphConvolution128(torch_geometric.nn.MessagePassing):
-    def __init__(self):
+class BipartiteGraphConvolutionDropout(torch_geometric.nn.MessagePassing):
+    def __init__(self, emb_size, dropout_rate):
         super().__init__("add")
-        emb_size = 128
+        #emb_size = 64
 
         self.feature_module_left = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size)
@@ -152,7 +151,7 @@ class BipartiteGraphConvolution128(torch_geometric.nn.MessagePassing):
         self.feature_module_final = torch.nn.Sequential(
             PreNormLayer(1, shift=False),
             torch.nn.ReLU(),
-            torch.nn.Linear(emb_size, emb_size),
+            torch.nn.Linear(3 * emb_size, emb_size),
         )
 
         self.post_conv_module = torch.nn.Sequential(PreNormLayer(1, shift=False))
@@ -160,6 +159,7 @@ class BipartiteGraphConvolution128(torch_geometric.nn.MessagePassing):
         # output_layers
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(2 * emb_size, emb_size),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
         )
@@ -176,61 +176,11 @@ class BipartiteGraphConvolution128(torch_geometric.nn.MessagePassing):
         )
 
     def message(self, node_features_i, node_features_j, edge_features):
-        output = self.feature_module_final(
-            self.feature_module_left(node_features_i)
-            + self.feature_module_edge(edge_features)
-            + self.feature_module_right(node_features_j)
-        )
+        left = self.feature_module_left(node_features_i)
+        edge = self.feature_module_edge(edge_features)
+        right = self.feature_module_right(node_features_j)
+        output = self.feature_module_final(torch.cat((left, edge, right), dim=-1))
         return output
-
-class BipartiteGraphConvolution256(torch_geometric.nn.MessagePassing):
-    def __init__(self):
-        super().__init__("add")
-        emb_size = 256
-
-        self.feature_module_left = torch.nn.Sequential(
-            torch.nn.Linear(emb_size, emb_size)
-        )
-        self.feature_module_edge = torch.nn.Sequential(
-            torch.nn.Linear(1, emb_size, bias=False)
-        )
-        self.feature_module_right = torch.nn.Sequential(
-            torch.nn.Linear(emb_size, emb_size, bias=False)
-        )
-        self.feature_module_final = torch.nn.Sequential(
-            PreNormLayer(1, shift=False),
-            torch.nn.ReLU(),
-            torch.nn.Linear(emb_size, emb_size),
-        )
-
-        self.post_conv_module = torch.nn.Sequential(PreNormLayer(1, shift=False))
-
-        # output_layers
-        self.output_module = torch.nn.Sequential(
-            torch.nn.Linear(2 * emb_size, emb_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(emb_size, emb_size),
-        )
-
-    def forward(self, left_features, edge_indices, edge_features, right_features):
-        output = self.propagate(
-            edge_indices,
-            size=(left_features.shape[0], right_features.shape[0]),
-            node_features=(left_features, right_features),
-            edge_features=edge_features,
-        )
-        return self.output_module(
-            torch.cat([self.post_conv_module(output), right_features], dim=-1)
-        )
-
-    def message(self, node_features_i, node_features_j, edge_features):
-        output = self.feature_module_final(
-            self.feature_module_left(node_features_i)
-            + self.feature_module_edge(edge_features)
-            + self.feature_module_right(node_features_j)
-        )
-        return output
-
 
 class BaseModel(torch.nn.Module):
     """
@@ -291,8 +241,8 @@ class GNNPolicy2_64_0(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -326,18 +276,19 @@ class GNNPolicy2_64_1(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 64
+        dropout_rate = 0.1
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
-
+        
         # CONSTRAINT EMBEDDING
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
@@ -348,15 +299,15 @@ class GNNPolicy2_64_1(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -387,6 +338,7 @@ class GNNPolicy2_64_2(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 64
+        dropout_rate = 0.2
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -395,10 +347,10 @@ class GNNPolicy2_64_2(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
@@ -409,15 +361,15 @@ class GNNPolicy2_64_2(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -448,6 +400,7 @@ class GNNPolicy2_64_3(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 64
+        dropout_rate = 0.3
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -456,10 +409,10 @@ class GNNPolicy2_64_3(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
@@ -470,15 +423,15 @@ class GNNPolicy2_64_3(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -534,8 +487,8 @@ class GNNPolicy2_128_0(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -569,6 +522,7 @@ class GNNPolicy2_128_1(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 128
+        dropout_rate = 0.1
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -577,10 +531,10 @@ class GNNPolicy2_128_1(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
@@ -591,15 +545,15 @@ class GNNPolicy2_128_1(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -630,6 +584,7 @@ class GNNPolicy2_128_2(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 128
+        dropout_rate = 0.2
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -638,10 +593,10 @@ class GNNPolicy2_128_2(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
@@ -652,15 +607,15 @@ class GNNPolicy2_128_2(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -691,6 +646,7 @@ class GNNPolicy2_128_3(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 128
+        dropout_rate = 0.3
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -699,10 +655,10 @@ class GNNPolicy2_128_3(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
@@ -713,15 +669,15 @@ class GNNPolicy2_128_3(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -777,8 +733,8 @@ class GNNPolicy2_256_0(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -812,6 +768,7 @@ class GNNPolicy2_256_1(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 256
+        dropout_rate = 0.1
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -820,10 +777,10 @@ class GNNPolicy2_256_1(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
@@ -834,15 +791,15 @@ class GNNPolicy2_256_1(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -873,6 +830,7 @@ class GNNPolicy2_256_2(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 256
+        dropout_rate = 0.2
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -881,10 +839,10 @@ class GNNPolicy2_256_2(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
@@ -895,15 +853,15 @@ class GNNPolicy2_256_2(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -934,6 +892,7 @@ class GNNPolicy2_256_3(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 256
+        dropout_rate = 0.3
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -942,10 +901,10 @@ class GNNPolicy2_256_3(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
 
@@ -956,15 +915,15 @@ class GNNPolicy2_256_3(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
         )
         
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1025,8 +984,8 @@ class GNNPolicy3_64_0(BaseModel):
             torch.nn.ReLU(),
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1060,6 +1019,7 @@ class GNNPolicy3_64_1(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 64
+        dropout_rate = 0.1
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -1068,13 +1028,13 @@ class GNNPolicy3_64_1(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
@@ -1085,18 +1045,18 @@ class GNNPolicy3_64_1(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1127,6 +1087,7 @@ class GNNPolicy3_64_2(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 64
+        dropout_rate = 0.2
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -1135,13 +1096,13 @@ class GNNPolicy3_64_2(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
@@ -1152,18 +1113,18 @@ class GNNPolicy3_64_2(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1194,6 +1155,7 @@ class GNNPolicy3_64_3(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 64
+        dropout_rate = 0.3
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -1202,13 +1164,13 @@ class GNNPolicy3_64_3(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
@@ -1219,18 +1181,18 @@ class GNNPolicy3_64_3(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution64()
-        self.conv_c_to_v = BipartiteGraphConvolution64()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1290,8 +1252,8 @@ class GNNPolicy3_128_0(BaseModel):
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1325,6 +1287,7 @@ class GNNPolicy3_128_1(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 128
+        dropout_rate = 0.1
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -1333,13 +1296,13 @@ class GNNPolicy3_128_1(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
@@ -1350,18 +1313,18 @@ class GNNPolicy3_128_1(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1392,6 +1355,7 @@ class GNNPolicy3_128_2(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 128
+        dropout_rate = 0.2
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -1400,13 +1364,13 @@ class GNNPolicy3_128_2(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
@@ -1417,18 +1381,18 @@ class GNNPolicy3_128_2(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1459,6 +1423,7 @@ class GNNPolicy3_128_3(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 128
+        dropout_rate = 0.3
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -1467,13 +1432,13 @@ class GNNPolicy3_128_3(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
@@ -1484,18 +1449,18 @@ class GNNPolicy3_128_3(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution128()
-        self.conv_c_to_v = BipartiteGraphConvolution128()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1555,8 +1520,8 @@ class GNNPolicy3_256_0(BaseModel):
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolution(emb_size)
+        self.conv_c_to_v = BipartiteGraphConvolution(emb_size)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1590,6 +1555,7 @@ class GNNPolicy3_256_1(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 256
+        dropout_rate = 0.1
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -1598,13 +1564,13 @@ class GNNPolicy3_256_1(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
@@ -1615,18 +1581,18 @@ class GNNPolicy3_256_1(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.1),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1657,6 +1623,7 @@ class GNNPolicy3_256_2(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 256
+        dropout_rate = 0.2
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -1665,13 +1632,13 @@ class GNNPolicy3_256_2(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
@@ -1682,18 +1649,18 @@ class GNNPolicy3_256_2(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.2),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
@@ -1724,6 +1691,7 @@ class GNNPolicy3_256_3(BaseModel):
     def __init__(self):
         super().__init__()
         emb_size = 256
+        dropout_rate = 0.3
         cons_nfeats = 5
         edge_nfeats = 1
         var_nfeats = 17
@@ -1732,13 +1700,13 @@ class GNNPolicy3_256_3(BaseModel):
         self.cons_embedding = torch.nn.Sequential(
             PreNormLayer(cons_nfeats),
             torch.nn.Linear(cons_nfeats, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
 
@@ -1749,18 +1717,18 @@ class GNNPolicy3_256_3(BaseModel):
         self.var_embedding = torch.nn.Sequential(
             PreNormLayer(var_nfeats),
             torch.nn.Linear(var_nfeats, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
             torch.nn.Linear(emb_size, emb_size),
-            torch.nn.Dropout(0.3),
+            torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),            
         )
         
-        self.conv_v_to_c = BipartiteGraphConvolution256()
-        self.conv_c_to_v = BipartiteGraphConvolution256()
+        self.conv_v_to_c = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
+        self.conv_c_to_v = BipartiteGraphConvolutionDropout(emb_size, dropout_rate)
 
         self.output_module = torch.nn.Sequential(
             torch.nn.Linear(emb_size, emb_size),
