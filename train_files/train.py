@@ -52,7 +52,7 @@ def pretrain(policy, pretrain_loader):
     return i
 
 
-def process(policy, data_loader, top_k=[1, 3, 5, 10], optimizer=None):
+def process(policy, data_loader, acc_step, top_k=[1, 3, 5, 10], optimizer=None):
     """
     Process samples. If an optimizer is given, also train on those samples.
     Parameters
@@ -80,7 +80,7 @@ def process(policy, data_loader, top_k=[1, 3, 5, 10], optimizer=None):
     else:
         policy.train()
     with torch.set_grad_enabled(optimizer is not None):
-        for batch in data_loader:
+        for i, batch in enumerate(data_loader):
             batch = batch.to(device)
             logits = policy(
                 batch.constraint_features,
@@ -91,13 +91,16 @@ def process(policy, data_loader, top_k=[1, 3, 5, 10], optimizer=None):
             logits = pad_tensor(logits[batch.candidates], batch.nb_candidates)
             cross_entropy_loss = F.cross_entropy(
                 logits, batch.candidate_choices, reduction="mean"
-            )
+            ) / acc_step
 
             # if an optimizer is provided, update parameters
             if optimizer is not None:
-                optimizer.zero_grad()
+                #optimizer.zero_grad()
                 cross_entropy_loss.backward()
-                optimizer.step()
+                if (i + 1) % acc_step == 0 or (i + 1) == len(data_loader): 
+                  optimizer.step()
+                  optimizer.zero_grad()
+                  
 
             true_scores = pad_tensor(batch.candidate_scores, batch.nb_candidates)
             true_bestscore = true_scores.max(dim=-1, keepdims=True).values
@@ -173,6 +176,7 @@ if __name__ == "__main__":
     BATCH_SIZE = cf.getint("train", "BATCH_SIZE")
     PRETRAIN_BATCH_SIZE = cf.getint("train", "PRETRAIN_BATCH_SIZE")
     VALID_BATCH_SIZE = cf.getint("train", "VALID_BATCH_SIZE")
+    ACC_STEP = cf.getint("train", "ACC_STEP")
     LR = cf.getfloat("train", "LR")
     POLICY_TYPE = cf.getint("train", "POLICY_TYPE")
     TRAIN_NUM = cf.getint("train", "TRAIN_NUM")
@@ -196,9 +200,10 @@ if __name__ == "__main__":
 
     #new_dir = "/content/neur/samples"
     instances = glob.glob(f"{path}/*.pkl")
-    train_count = int(len(instances) * 0.8)
-    train_files = instances[0:train_count+1]
-    valid_files = instances[train_count:-1]
+    #train_count = int(len(instances) * 0.8)
+    #train_files = instances[0:train_count+1]
+    #valid_files = instances[train_count:-1]
+    train_files, valid_files = np.split(instances, [int(0.8*len(instances))])
     print(f" len(train) = {len(train_files)}")
     print(f" len(valid) = {len(valid_files)}")
     date_name = '_'.join(str(datetime.datetime.now()).split())
@@ -341,7 +346,7 @@ if __name__ == "__main__":
             train_loader = torch_geometric.data.DataLoader(
                 train_data, BATCH_SIZE, shuffle=True
             )
-            train_loss, train_kacc = process(policy, train_loader, top_k, optimizer)
+            train_loss, train_kacc = process(policy, train_loader, ACC_STEP, top_k, optimizer)
             log(
                 f"TRAIN LOSS: {train_loss:0.3f} "
                 + "".join(
@@ -359,7 +364,7 @@ if __name__ == "__main__":
         valid_loader = torch_geometric.data.DataLoader(
             valid_data, BATCH_SIZE, shuffle=True
         )
-        valid_loss, valid_kacc = process(policy, valid_loader, top_k, None)
+        valid_loss, valid_kacc = process(policy, valid_loader, ACC_STEP, top_k, None)
         log(
             f"VALID LOSS: {valid_loss:0.3f} "
             + "".join([f" acc@{k}: {acc:0.3f}" for k, acc in zip(top_k, valid_kacc)]),
@@ -385,7 +390,7 @@ if __name__ == "__main__":
 
     # load best parameters and run a final validation step
     policy.load_state_dict(torch.load(pathlib.Path(running_dir) / f"best_params_type{POLICY_TYPE}.pkl"))
-    valid_loss, valid_kacc = process(policy, valid_loader, top_k, None)
+    valid_loss, valid_kacc = process(policy, valid_loader, ACC_STEP, top_k, None)
     log(
         f"BEST VALID LOSS: {valid_loss:0.3f} "
         + "".join([f" acc@{k}: {acc:0.3f}" for k, acc in zip(top_k, valid_kacc)]),
