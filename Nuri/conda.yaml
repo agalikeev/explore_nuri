@@ -6,7 +6,7 @@ channels:
 
 dependencies:
   # Minimal dependencies for the competition
-  - python=3.7
+  - python=3.8
   - scip=7.0.3
   - ecole=0.7.3
   - numpy
@@ -18,3 +18,5 @@ dependencies:
   - torchaudio
   - cudatoolkit=10.2
   - pytorch-geometric=1.7.2
+  - pip:
+    - imitation
